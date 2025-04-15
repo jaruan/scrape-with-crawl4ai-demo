@@ -1,70 +1,70 @@
-import xml.etree.ElementTree as ET
 import requests
 import json
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
 from crawl4ai.extraction_strategy import JsonCssExtractionStrategy
 
 from utils import match_str
-from phillips.model import ITEM_SCHEMA, METADATA_SCHEMA
+from phillips.schema import ITEM_SCHEMA, METADATA_SCHEMA
 
 
 class PhillipsCrawler:
-    SITEMAP_URL = "https://www.phillips.com/sitemap.xml"
+    MAIN_URLS = [
+        "https://www.phillips.com/auctions/past",
+        "https://www.phillips.com/calendar",
+    ]
     FILTER_URLS = ["/auction/"]
 
     @classmethod
-    def parseXML(cls, xml_content):
-        root = ET.fromstring(xml_content)
-        # Define the namespace
-        namespace = {"ns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-        # Find all <loc> elements using the namespace
-        urls = root.findall(".//ns:loc", namespaces=namespace)
+    async def crawl_links(cls, crawler):
+        links = []
+        for url in cls.MAIN_URLS:
+            result = await crawler.arun(
+                url=url,
+            )
+            for link in result.links["internal"]:
+                href = link.get("href", "")
+                if match_str(href, cls.FILTER_URLS):
+                    links.append(href)
 
-        return urls
+        return links
 
     @classmethod
-    async def crawl(cls, url):
+    async def crawl_auction(cls, crawler, url):
         print("Crawling url: ", url)
         html_content = requests.get(url).content
+        items_result = await crawler.arun(
+            url="raw://" + html_content.decode("utf-8"),
+            config=CrawlerRunConfig(
+                cache_mode=CacheMode.BYPASS,
+                extraction_strategy=JsonCssExtractionStrategy(ITEM_SCHEMA),
+            ),
+        )
 
-        async with AsyncWebCrawler() as crawler:
-            items_result = await crawler.arun(
-                url="raw://" + html_content.decode("utf-8"),
-                config=CrawlerRunConfig(
-                    cache_mode=CacheMode.BYPASS,
-                    extraction_strategy=JsonCssExtractionStrategy(ITEM_SCHEMA),
-                ),
-            )
+        items = json.loads(items_result.extracted_content)
+        print("items: ", items)
 
-            items = json.loads(items_result.extracted_content)
-            print("items: ", items)
+        metadata_result = await crawler.arun(
+            url="raw://" + html_content.decode("utf-8"),
+            config=CrawlerRunConfig(
+                cache_mode=CacheMode.BYPASS,
+                extraction_strategy=JsonCssExtractionStrategy(METADATA_SCHEMA),
+            ),
+        )
+        metadata = json.loads(metadata_result.extracted_content)
+        print("metadata: ", metadata)
 
-            metadata_result = await crawler.arun(
-                url="raw://" + html_content.decode("utf-8"),
-                config=CrawlerRunConfig(
-                    cache_mode=CacheMode.BYPASS,
-                    extraction_strategy=JsonCssExtractionStrategy(METADATA_SCHEMA),
-                ),
-            )
-            metadata = json.loads(metadata_result.extracted_content)
-            print("metadata: ", metadata)
-
-            return items, metadata
+        return items, metadata
 
     @classmethod
-    def transform(cls, items, metadata):
+    def transform(cls, auction_id, items, metadata):
         pass
 
     @classmethod
     async def run(cls):
-        response = requests.get(cls.SITEMAP_URL)
-        if response.status_code != 200:
-            raise Exception("Failed to fetch sitemap")
-
-        xml_urls = cls.parseXML(response.content)
-
-        for xml_url in xml_urls:
-            is_match = match_str(xml_url.text, cls.FILTER_URLS)
-            if is_match:
-                await cls.crawl(xml_url.text)
+        async with AsyncWebCrawler() as crawler:
+            links = await cls.crawl_links(crawler)
+            for link in links:
+                auction_id = link.split("/")[-1]
+                items, metadata = await cls.crawl_auction(crawler, link)
+                cls.transform(auction_id, items, metadata)
                 return
