@@ -36,12 +36,12 @@ ITEM_SCHEMA = {
         },
         {
             "name": "sale_price",
-            "selector": "dt:contains('Estimate') + dd.seldon-detail__value",
+            "selector": "dt:-soup-contains('Estimate') + dd.seldon-detail__value",
             "type": "text",
         },
         {
             "name": "purchased_price",
-            "selector": "dt:contains('Sold For') + dd.seldon-detail__value",
+            "selector": "dt:-soup-contains('Sold For') + dd.seldon-detail__value",
             "type": "text",
         },
     ],
