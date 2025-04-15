@@ -5,23 +5,12 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
 from crawl4ai.extraction_strategy import JsonCssExtractionStrategy
 
 from utils import match_str
+from phillips.model import ITEM_SCHEMA, METADATA_SCHEMA
+
 
 class PhillipsCrawler:
     SITEMAP_URL = "https://www.phillips.com/sitemap.xml"
     FILTER_URLS = ["/auction/"]
-    ITEM_SCHEMA = {
-        "name": "PHILLIPS Items",
-        "baseSelector": "div.seldon-grid-item",
-        "fields": [
-            {"name": "reserve_flag", "selector": "div.seldon-object-tile__badge", "type": "text"},
-            {"name": "lot_number", "selector": "div.seldon-object-tile__lot-number", "type": "text"},
-            {"name": "author", "selector": "div.seldon-object-tile__maker", "type": "text"},
-            {"name": "title", "selector": "div.seldon-object-tile__title", "type": "text"},
-            {"name": "link", "selector": "a.seldon-object-tile", "type": "attribute", "attribute": "href"},
-            # {"name": "sale_price", "", "selector": "dd.seldon-detail__value", "type": "text"},
-            # {"name": "sold_price", "selector": "dd.seldon-detail__value", "type": "text"},
-        ]
-    }
 
     @classmethod
     def parseXML(cls, xml_content):
@@ -36,16 +25,35 @@ class PhillipsCrawler:
     @classmethod
     async def crawl(cls, url):
         print("Crawling url: ", url)
+        html_content = requests.get(url).content
+
         async with AsyncWebCrawler() as crawler:
-            result = await crawler.arun(
-            url=url,
-            config=CrawlerRunConfig(
-                cache_mode=CacheMode.BYPASS,
-                extraction_strategy=JsonCssExtractionStrategy(cls.ITEM_SCHEMA)
+            items_result = await crawler.arun(
+                url="raw://" + html_content.decode("utf-8"),
+                config=CrawlerRunConfig(
+                    cache_mode=CacheMode.BYPASS,
+                    extraction_strategy=JsonCssExtractionStrategy(ITEM_SCHEMA),
+                ),
             )
-        )
-        data = json.loads(result.extracted_content)
-        print(data)
+
+            items = json.loads(items_result.extracted_content)
+            print("items: ", items)
+
+            metadata_result = await crawler.arun(
+                url="raw://" + html_content.decode("utf-8"),
+                config=CrawlerRunConfig(
+                    cache_mode=CacheMode.BYPASS,
+                    extraction_strategy=JsonCssExtractionStrategy(METADATA_SCHEMA),
+                ),
+            )
+            metadata = json.loads(metadata_result.extracted_content)
+            print("metadata: ", metadata)
+
+            return items, metadata
+
+    @classmethod
+    def transform(cls, items, metadata):
+        pass
 
     @classmethod
     async def run(cls):
@@ -58,5 +66,5 @@ class PhillipsCrawler:
         for xml_url in xml_urls:
             is_match = match_str(xml_url.text, cls.FILTER_URLS)
             if is_match:
-                await cls.crawl(xml_url.text)   
-                return              
+                await cls.crawl(xml_url.text)
+                return
