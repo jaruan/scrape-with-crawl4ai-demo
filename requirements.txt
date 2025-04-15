@@ -1,0 +1,3 @@
+python-dotenv
+crawl4ai
+requests
