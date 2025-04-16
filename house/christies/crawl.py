@@ -18,7 +18,7 @@ class ChristiesCrawler(BaseCrawler):
                 "https://www.christies.com/en/calendar",
                 "https://www.christies.com/en/results",
             ],
-            filter_keys=["/auction/", "onlineonly."],
+            filter_link_by_keys=["/auction/", "onlineonly."],
             house_name="christies",
         )
 
@@ -46,44 +46,39 @@ class ChristiesCrawler(BaseCrawler):
                 return loadedItems === totalItems;
             }
         """
-        try:
-            first_step_result = await crawler.arun(
-                url=url,
-                config=CrawlerRunConfig(
-                    cache_mode=CacheMode.BYPASS,
-                    wait_for=f"js:{wait_for_items_js}",
-                ),
-            )
-            if not first_step_result.success:
-                raise Exception(first_step_result.error_message)
+        first_step_result = await crawler.arun(
+            url=url,
+            config=CrawlerRunConfig(
+                cache_mode=CacheMode.BYPASS,
+                wait_for=f"js:{wait_for_items_js}",
+            ),
+        )
+        if not first_step_result.success:
+            raise Exception(first_step_result.error_message)
 
-            all_items_result = await crawler.arun(
-                url=url,
-                config=CrawlerRunConfig(
-                    cache_mode=CacheMode.BYPASS,
-                    extraction_strategy=JsonCssExtractionStrategy(ITEM_SCHEMA),
-                    js_code=load_all_item_js,
-                    wait_for=f"js:{wait_for_js}",
-                ),
-            )
-            if not all_items_result.success:
-                raise Exception(all_items_result.error_message)
+        all_items_result = await crawler.arun(
+            url=url,
+            config=CrawlerRunConfig(
+                cache_mode=CacheMode.BYPASS,
+                extraction_strategy=JsonCssExtractionStrategy(ITEM_SCHEMA),
+                js_code=load_all_item_js,
+                wait_for=f"js:{wait_for_js}",
+            ),
+        )
+        if not all_items_result.success:
+            raise Exception(all_items_result.error_message)
 
-            items = json.loads(all_items_result.extracted_content)
-            # print("items: ", items)
+        items = json.loads(all_items_result.extracted_content)
+        # print("items: ", items)
 
-            metadata_result = await crawler.arun(
-                url="raw:" + all_items_result.html,
-                config=CrawlerRunConfig(
-                    cache_mode=CacheMode.BYPASS,
-                    extraction_strategy=JsonCssExtractionStrategy(METADATA_SCHEMA),
-                ),
-            )
-            metadata = json.loads(metadata_result.extracted_content)
-            print("metadata: ", metadata)
+        metadata_result = await crawler.arun(
+            url="raw:" + all_items_result.html,
+            config=CrawlerRunConfig(
+                cache_mode=CacheMode.BYPASS,
+                extraction_strategy=JsonCssExtractionStrategy(METADATA_SCHEMA),
+            ),
+        )
+        metadata = json.loads(metadata_result.extracted_content)
+        print("metadata: ", metadata)
 
-            return items, metadata
-
-        except Exception as e:
-            print("Error: ", e)
-            return [], []
+        return items, metadata

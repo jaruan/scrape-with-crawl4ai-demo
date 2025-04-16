@@ -14,8 +14,8 @@ class PhillipsCrawler(BaseCrawler):
                 "https://www.phillips.com/auctions/past",
                 "https://www.phillips.com/calendar",
             ],
-            filter_keys=["/auction/"],
-            house_name="Phillips",
+            filter_link_by_keys=["/auction/"],
+            house_name="phillips",
         )
 
     async def crawl_auction(

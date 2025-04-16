@@ -1,5 +1,5 @@
 ITEM_SCHEMA = {
-    "name": "PHILLIPS Items",
+    "name": "PHILLIPS ITEMS",
     "baseSelector": "div.seldon-grid-item",
     "fields": [
         {
