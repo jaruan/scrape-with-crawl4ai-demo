@@ -15,8 +15,6 @@ class PhillipsCrawler(BaseCrawler):
                 "https://www.phillips.com/calendar",
             ],
             filter_keys=["/auction/"],
-            item_schema=ITEM_SCHEMA,
-            metadata_schema=METADATA_SCHEMA,
             house_name="Phillips",
         )
 
@@ -26,10 +24,10 @@ class PhillipsCrawler(BaseCrawler):
         print(f"Crawling {self._house_name}'s url: ", url)
         html_content = requests.get(url).content
         items_result = await crawler.arun(
-            url="raw://" + html_content.decode("utf-8"),
+            url="raw:" + html_content.decode("utf-8"),
             config=CrawlerRunConfig(
                 cache_mode=CacheMode.BYPASS,
-                extraction_strategy=JsonCssExtractionStrategy(self._item_schema),
+                extraction_strategy=JsonCssExtractionStrategy(ITEM_SCHEMA),
             ),
         )
 
@@ -37,10 +35,10 @@ class PhillipsCrawler(BaseCrawler):
         print("items: ", items)
 
         metadata_result = await crawler.arun(
-            url="raw://" + html_content.decode("utf-8"),
+            url="raw:" + html_content.decode("utf-8"),
             config=CrawlerRunConfig(
                 cache_mode=CacheMode.BYPASS,
-                extraction_strategy=JsonCssExtractionStrategy(self._metadata_schema),
+                extraction_strategy=JsonCssExtractionStrategy(METADATA_SCHEMA),
             ),
         )
         metadata = json.loads(metadata_result.extracted_content)

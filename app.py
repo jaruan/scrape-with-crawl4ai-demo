@@ -7,8 +7,8 @@ load_dotenv()
 
 
 async def main():
-    await PhillipsCrawler().run()
-    # await ChristiesCrawler().run()
+    # await PhillipsCrawler().run()
+    await ChristiesCrawler().run()
 
 
 if __name__ == "__main__":
