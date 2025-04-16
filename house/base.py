@@ -8,14 +8,18 @@ class BaseCrawler:
     _filter_keys = []
     _item_schema = {}
     _metadata_schema = {}
+    _house_name = ""
 
-    def __init__(self, main_urls, filter_keys, item_schema, metadata_schema) -> None:
+    def __init__(
+        self, main_urls, filter_keys, item_schema, metadata_schema, house_name
+    ) -> None:
         self._main_urls = main_urls
         self._filter_keys = filter_keys
         self._item_schema = item_schema
         self._metadata_schema = metadata_schema
+        self._house_name = house_name
 
-    async def crawl_links(self, crawler):
+    async def crawl_links(self, crawler: AsyncWebCrawler):
         links = []
         for url in self._main_urls:
             result = await crawler.arun(
@@ -41,3 +45,6 @@ class BaseCrawler:
                 items, metadata = await self.crawl_auction(crawler, link)
                 self.transform(items, metadata, link)
                 return
+
+    def convert_to_model(self):
+        pass

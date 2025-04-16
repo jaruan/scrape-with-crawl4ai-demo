@@ -3,7 +3,7 @@ import json
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
 from crawl4ai.extraction_strategy import JsonCssExtractionStrategy
 
-from house.base_crawler import BaseCrawler
+from house.base import BaseCrawler
 from house.phillips.schema import ITEM_SCHEMA, METADATA_SCHEMA
 
 
@@ -17,12 +17,13 @@ class PhillipsCrawler(BaseCrawler):
             filter_keys=["/auction/"],
             item_schema=ITEM_SCHEMA,
             metadata_schema=METADATA_SCHEMA,
+            house_name="Phillips",
         )
 
     async def crawl_auction(
         self, crawler: AsyncWebCrawler, url: str
     ) -> tuple[list, list]:
-        print("Crawling url: ", url)
+        print(f"Crawling {self._house_name}'s url: ", url)
         html_content = requests.get(url).content
         items_result = await crawler.arun(
             url="raw://" + html_content.decode("utf-8"),
