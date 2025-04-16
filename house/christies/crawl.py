@@ -1,8 +1,5 @@
-from asyncio import wait_for
 import json
-import requests
 
-from openai import timeout
 from house.base import BaseCrawler
 from crawl4ai import (
     AsyncWebCrawler,
@@ -34,10 +31,13 @@ class ChristiesCrawler(BaseCrawler):
                 return loadAllItemsButton !== null
             }
         """
+
+        # For second step, click the load all items button
         load_all_item_js = [
             "window.scrollTo(0, document.body.scrollHeight);",
             "document.querySelector('button.chr-button--link-underline[aria-label=\"Load all remaining lots\"]').click();",
         ]
+        # Until the total items is equal to the loaded items
         wait_for_js = """
             () => {
                 const totalItemsText = document.querySelector('a.chr-page-nav__link.chr-page-nav__link--active').text;
